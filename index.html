@@ -320,11 +320,22 @@ tbody tr:hover td{background:rgba(99,102,241,.04)}
 .profile-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
 .profile-type{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:4px}
 .profile-why{font-size:.75rem;color:var(--text-2);line-height:1.5;margin-bottom:10px}
+.example-person{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.22);border-radius:8px;padding:8px 10px;margin:5px 0 10px}
+.ep-name a{font-size:.83rem;font-weight:700;color:var(--accent-2);text-decoration:none}
+.ep-name a:hover{text-decoration:underline}
+.ep-role{font-size:.72rem;color:var(--text-2);margin-top:2px}
+.ep-meta{margin-top:5px}
+.otc-badge{font-size:.62rem;font-weight:700;color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:20px;padding:2px 8px;display:inline-block}
 .profile-msg-wrap{display:flex;flex-direction:column;gap:5px}
 
 /* ─── NAV GROUPS ─── */
 .nav-group-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--text-3);padding:0 12px 0 4px;display:flex;align-items:center;border-right:1px solid var(--border-strong);margin-right:4px;white-space:nowrap;flex-shrink:0}
 
+
+
+/* ── LinkedIn Profile Links ──────────────────────────────── */
+.li-link{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(129,140,248,.4);transition:border-color .15s,color .15s}
+.li-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* ── Login Gate ─────────────────────────────────────────── */
 #screen-login{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -361,7 +372,7 @@ tbody tr:hover td{background:rgba(99,102,241,.04)}
         <line x1="16.8" y1="17.5" x2="21.8" y2="20.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/>
         <line x1="7" y1="22" x2="23" y2="22" stroke="#4338ca" stroke-width="1" opacity=".4"/>
       </svg>
-      <span class="brand-name">Kai\'s Network<span>Intelligence</span></span>
+      <span class="brand-name">Kai's Network<span>Intelligence</span></span>
     </div>
     <div class="login-title">Sign in to continue</div>
     <p class="login-sub">Enter your email and the access password<br>shared with you by Kai.</p>
@@ -375,7 +386,7 @@ tbody tr:hover td{background:rgba(99,102,241,.04)}
     </div>
     <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
     <div class="login-error" id="lg-err"></div>
-    <div class="login-footer">Your data never leaves your browser.</div>
+    <div class="login-footer" style="line-height:1.6">Quick transparency note: I keep a record of login emails so I know who's using the tool. Your actual LinkedIn data never leaves your browser, promise. No spam, no sharing — just Kai knowing his friends showed up.<br><br>Got feedback or ideas? Email <a href="mailto:kaibode@gmail.com" style="color:var(--accent-2);text-decoration:none">kaibode@gmail.com</a> — always appreciated.</div>
   </div>
 </div>
 
@@ -526,6 +537,8 @@ tbody tr:hover td{background:rgba(99,102,241,.04)}
     <div class="app-bar-right">
       <button class="btn-ghost" onclick="downloadCSV()">↓ Action List (CSV)</button>
       <button class="btn-ghost" onclick="downloadDashboard()">↓ Dashboard (HTML)</button>
+      <button class="btn-ghost" onclick="window.location.href='mailto:kaibode@gmail.com?subject=KNI Feedback&body=Hi Kai, here\'s my feedback on the tool:%0A%0A'" title="Send feedback to Kai">💬 Feedback</button>
+      <button class="btn-ghost" onclick="niSignOut()" title="Sign out">Sign Out</button>
       <button class="btn-accent-ghost" onclick="restart()">New Analysis</button>
     </div>
   </div>
@@ -588,6 +601,11 @@ function niIsAuthed(){
   });
 })();
 
+function niSignOut(){
+  try{localStorage.removeItem('ni_auth_ts');}catch(e){}
+  location.reload();
+}
+
 function doLogin(){
   var email=document.getElementById('lg-email').value.trim();
   var pass=document.getElementById('lg-pass').value;
@@ -606,6 +624,19 @@ function doLogin(){
   }
   // Success — stamp the login time
   try{ localStorage.setItem('ni_auth_ts', Date.now().toString()); }catch(e){}
+  // Log email to Google Sheet (fire and forget — never shown to user)
+  try{
+    var alreadyLogged=localStorage.getItem('ni_logged_'+email);
+    if(!alreadyLogged){
+      var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){}
+      var logUrl='https://script.google.com/macros/s/AKfycbz_P26OiBueRqwP4BmKTH0sM3750QKHVCSnADE7BMmLXPKle92zfGdsdr2AnPYtxJgX/exec'
+        +'?email='+encodeURIComponent(email)
+        +'&timezone='+encodeURIComponent(tz);
+      fetch(logUrl,{method:'GET',mode:'no-cors'})
+        .then(function(){try{localStorage.setItem('ni_logged_'+email,'1');}catch(e){}})
+        .catch(function(){});
+    }
+  }catch(e){}
   document.getElementById('screen-login').style.display='none';
   var ul=document.getElementById('screen-upload');
   if(ul){ ul.style.display=''; }
@@ -644,18 +675,27 @@ fileInput.addEventListener('change',async e=>await handleFiles(e.target.files));
 async function handleFiles(fileList){
   APP.files={};
   const files=Array.from(fileList);
+  const allExpected=NEEDED.concat(OPTIONAL);
+  // case-insensitive lookup helper
+  function matchExpected(fname){return allExpected.find(n=>n.toLowerCase()===fname.toLowerCase());}
   if(files.length===1&&files[0].name.toLowerCase().endsWith('.zip')){
     showError('');
     try{
       const zip=await JSZip.loadAsync(files[0]);
+      const found=[];
       for(const[path,entry]of Object.entries(zip.files)){
         const fname=path.split('/').pop();
-        if(!entry.dir&&(NEEDED.concat(OPTIONAL).includes(fname)))
-          APP.files[fname]=await entry.async('text');
+        const matched=matchExpected(fname);
+        if(!entry.dir&&matched){APP.files[matched]=await entry.async('text');found.push(matched);}
+      }
+      if(found.length===0){
+        // show what was actually inside so user can diagnose
+        const names=Object.keys(zip.files).filter(p=>!zip.files[p].dir).map(p=>p.split('/').pop()).join(', ');
+        showError('No matching files found in ZIP. Files inside: '+(names||'(empty)'));return;
       }
     }catch(e){showError('Could not read ZIP file. Please try downloading your LinkedIn export again.');return;}
   }else{
-    for(const f of files){if(NEEDED.concat(OPTIONAL).includes(f.name))APP.files[f.name]=await f.text();}
+    for(const f of files){const matched=matchExpected(f.name);if(matched)APP.files[matched]=await f.text();}
   }
   showFileStatus();
 }
@@ -689,6 +729,7 @@ function showError(msg){
 // UTILITIES
 // ══════════════════════════════════════════════════════════════
 function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function liLink(name,urlMap,cls=''){const url=urlMap&&urlMap[name];if(!url)return esc(name);return '<a href="'+esc(url)+'" target="_blank" rel="noopener" class="li-link'+(cls?' '+cls:'')+'" title="View on LinkedIn">'+esc(name)+'<svg style="margin-left:4px;vertical-align:middle;opacity:.55" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>';}
 function pill(status){const m={Critical:'crit',Fading:'fade',Moderate:'mod',Strong:'strong'};return `<span class="pill pill-${m[status]||'mod'}">${status||'—'}</span>`;}
 function daysSince(date){if(!date)return null;return Math.max(0,Math.floor((NOW-date)/86400000));}
 function parseDate(str){if(!str)return null;const d=new Date(str);return isNaN(d)?null:d;}
@@ -953,24 +994,24 @@ function computeWeeklyActions(hlResults,vouchResults,resurrectionResults,recip,w
   resurrectionResults.slice(0,15).forEach(r=>{
     const vouch=vouchMap[r.name]||0;
     const catMsg={
-      'Catch-up Never Happened':`Hi ${r.name.split(' ')[0]}, I was just reminiscing about our conversation — I think we mentioned grabbing coffee at some point and it never happened. Life got busy for both of us! Would you be up for a quick catch-up call? I\'d genuinely love to hear what you\'ve been up to.`,
-      'They Asked For Help':`Hi ${r.name.split(' ')[0]}, I was going through old messages and realized I never properly followed up when you reached out. I\'m sorry about that — I genuinely want to help. Would you be open to a quick call to revisit where things stand? I\'m in a better position to be useful now.`,
-      'You Offered Help':`Hi ${r.name.split(' ')[0]}, I know I offered to help a while back and I want to make sure I actually followed through. How are things going? I\'m still happy to support however I can — even if it\'s just a sounding board conversation.`,
-      'Career Transition':`Hi ${r.name.split(' ')[0]}, I saw that you recently made a move and wanted to reach out to say congratulations! New chapters are exciting. How are you settling in? I\'d love to catch up and hear about the new role.`,
+      'Catch-up Never Happened':`Hi ${r.name.split(' ')[0]}, I think we talked about grabbing coffee at some point and it never actually happened. Life got in the way for both of us I'm sure. Would you be up for a quick call to finally catch up?`,
+      'They Asked For Help':`Hi ${r.name.split(' ')[0]}, was going through old messages and realized I never followed up properly when you reached out. Sorry about that. Still happy to help if it's still relevant. What was on your mind?`,
+      'You Offered Help':`Hi ${r.name.split(' ')[0]}, I offered to help a while back and I honestly don't think I came through. Wanted to check back in. How are things going? Still here if anything's useful.`,
+      'Career Transition':`Hi ${r.name.split(' ')[0]}, saw you made a move recently and wanted to say congrats. How's it going so far? Would be good to catch up and hear how the new role is treating you.`,
     };
-    candidates.push({name:r.name,company:r.company,position:r.position,priority:vouch*0.35+85*0.30+90*0.25+r.msgCount*0.10,vouch,urgency:85,category:'resurrection',hook:r.hook,action:'Re-engage with a natural hook',msgTemplate:catMsg[r.category]||`Hi ${r.name.split(' ')[0]}, it\'s been a while! I\'d love to reconnect and hear what you\'ve been up to. Would you be open to a brief catch-up?`});
+    candidates.push({name:r.name,company:r.company,position:r.position,priority:vouch*0.35+85*0.30+90*0.25+r.msgCount*0.10,vouch,urgency:85,category:'resurrection',hook:r.hook,action:'Re-engage with a natural hook',msgTemplate:catMsg[r.category]||`Hi ${r.name.split(' ')[0]}, it's been a while. How are things? Would be good to reconnect if you're up for it.`});
   });
 
   // Reciprocity debts (you owe them — strategic to close)
   recip.iOwe.slice(0,10).forEach(r=>{
     const vouch=vouchMap[r.name]||0;
-    candidates.push({name:r.name,company:'',position:'',priority:vouch*0.35+70*0.30+75*0.25,vouch,urgency:70,category:'reciprocity',hook:'You owe this person — a proactive endorsement or recommendation strengthens the relationship before you need a favor.',action:'Write a recommendation or LinkedIn endorsement',msgTemplate:`Hi ${r.name.split(' ')[0]}, I\'ve been meaning to reach out for a while. You\'ve been such a generous part of my network and I want to make sure I\'m giving back. I just left you a recommendation/endorsement on LinkedIn — it\'s the least I could do. I\'d love to reconnect soon if you\'re open to it.`});
+    candidates.push({name:r.name,company:'',position:'',priority:vouch*0.35+70*0.30+75*0.25,vouch,urgency:70,category:'reciprocity',hook:'You owe this person — a proactive endorsement or recommendation strengthens the relationship before you need a favor.',action:'Write a recommendation or LinkedIn endorsement',msgTemplate:`Hi ${r.name.split(' ')[0]}, you've done a lot for me and I've been meaning to do something about that for a while. Just wrote you a recommendation on LinkedIn. Honestly long overdue. Hope things are going well.`});
   });
 
   // Top warm path contacts who are fading (strategic company access)
   warmResult.direct.filter(r=>r.decay==='Fading'||r.decay==='Critical').slice(0,5).forEach(r=>{
     const vouch=r.vouch||0;
-    candidates.push({name:r.name,company:warmResult.targetCo,position:r.position,priority:vouch*0.35+65*0.30+80*0.25,vouch,urgency:65,category:'strategic',hook:`Direct connection at ${warmResult.targetCo} who\'s fading — your best warm path to this company is at risk.`,action:'Reconnect before this warm path goes cold',msgTemplate:`Hi ${r.name.split(' ')[0]}, I hope you\'re doing well! I was thinking about our connection at ${warmResult.targetCo} and realized I\'ve been meaning to reach out. I\'ve been following what the team there is working on — very impressive. Would love to grab a quick call and catch up on how things are going for you. Any time that works for you in the next few weeks?`});
+    candidates.push({name:r.name,company:warmResult.targetCo,position:r.position,priority:vouch*0.35+65*0.30+80*0.25,vouch,urgency:65,category:'strategic',hook:`Direct connection at ${warmResult.targetCo} who\'s fading — your best warm path to this company is at risk.`,action:'Reconnect before this warm path goes cold',msgTemplate:`Hi ${r.name.split(' ')[0]}, been meaning to reach out for a while. How are things going at ${warmResult.targetCo}? Would be good to catch up sometime if you have a few minutes.`});
   });
 
   // Deduplicate by name, sort by priority, return top 5
@@ -985,14 +1026,14 @@ function generateOutreachMessage(person,category){
   const first=person.name.split(' ')[0];
   const co=person.company||'your company';
   const msgs={
-    'catch_up':`Hi ${first}, I was scrolling through my LinkedIn connections and your name came up — realized it\'s been way too long since we\'ve spoken. I\'ve been following what you\'re up to at ${co} and wanted to reach out. No agenda, just a genuine interest in reconnecting. Would you be up for a 15-minute catch-up call sometime soon?`,
-    'career_transition':`Hi ${first}, congratulations on the new role at ${co}! I saw the update and wanted to reach out right away. New chapters are exciting — how are you settling in? I\'d love to hear about the transition and what you\'re working on. If you ever want a sounding board, I\'m happy to jump on a call.`,
-    'asked_help':`Hi ${first}, I realized I dropped the ball when you reached out a while back — I\'m genuinely sorry about that. I\'d still love to help if I can. What was on your mind? Sometimes the best time to revisit something is after a bit of distance. Feel free to share and I\'ll do my best to be useful.`,
-    'offered_help':`Hi ${first}, I know I mentioned being available to help and I want to make sure I actually followed through. How are things going? I\'m still very much here if you need a thought partner, introductions, or just someone to think out loud with. What\'s on your plate these days?`,
-    'fading':`Hi ${first}, I realized it\'s been a while and wanted to check in. Life gets busy and connections can drift — but I genuinely value the relationship we built. How are things going for you? I\'d love to catch up and hear what you\'re focused on right now.`,
-    'critical':`Hi ${first}, I know it\'s been a long time and I won\'t pretend it hasn\'t been — but I\'ve been thinking about our connection and wanted to reach out before too much more time passes. I\'d genuinely love to reconnect. Even a quick 10-minute call would mean a lot. Is there a good time that works for you?`,
-    'reciprocity':`Hi ${first}, I want to be straightforward — I\'ve been the beneficiary of your generosity in our network and I\'ve been meaning to find a way to give back. I\'d love to find ways to support you, whether through introductions, a recommendation, or just being a useful thought partner. Can we find time to reconnect?`,
-    'strategic':`Hi ${first}, your background in ${person.position||'this space'} caught my attention and I\'ve been meaning to reach out for a while. I think there\'s a lot of value we could create by reconnecting — whether through sharing insights, making introductions, or just thinking through problems together. Would you be open to a brief conversation?`,
+    'catch_up':`Hi ${first}, was just scrolling through my connections and realized it\'s been way too long since we talked. How are things going at ${co}? If you\'re up for it, happy to hop on a call and catch up properly.`,
+    'career_transition':`Hi ${first}, saw you made the move to ${co} and wanted to say congrats. How\'s it going so far? Curious to hear how the transition went. Let me know if you want to grab a call sometime.`,
+    'asked_help':`Hi ${first}, I never properly followed up when you reached out and I feel bad about that. Still happy to help if it\'s still relevant. What was on your mind?`,
+    'offered_help':`Hi ${first}, wanted to check back in since I offered to help a while ago and I\'m honestly not sure I delivered on that. What are you working on these days? Still here if anything comes up.`,
+    'fading':`Hi ${first}, it\'s been a while and I figured I\'d reach out before even more time passes. Hope things at ${co} are going well. Would be good to reconnect if you\'re open to it.`,
+    'critical':`Hi ${first}, been way too long. I kept meaning to reach out and kept not doing it, so here I am. Hope things are good with you. Even a quick 10 minutes to catch up would be great.`,
+    'reciprocity':`Hi ${first}, you\'ve done a lot for me over the years and I don\'t think I\'ve returned the favor nearly enough. Been sitting on that for a while. What are you working on right now? Happy to help however makes sense.`,
+    'strategic':`Hi ${first}, your work in ${person.position||'this area'} has been on my radar and I keep meaning to reach out. Think there\'s probably a lot we could learn from each other. Would you be up for a quick call?`,
   };
   return msgs[category]||msgs['fading'];
 }
@@ -1044,11 +1085,11 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
       insight:`Only ${stats.seniorPct}% of your network holds VP-level or above titles. Senior sponsors open doors that peers cannot — you need more decision-makers in your corner.`,
       searchQuery:`LinkedIn search: "VP" OR "Vice President" OR "Director" OR "Chief" — filter by 2nd degree connections in your target industries`,
       profiles:[
-        {type:'VP of Strategy at a company in your sector',why:'Senior enough to make decisions, junior enough to be accessible. They sit where strategy meets execution.',message:'Hi [Name], your work in [area] at [Company] is exactly the kind of strategic perspective I\'m looking to learn from. I\'d love to connect and perhaps compare notes on [topic] — I think there\'s real value in the exchange for both of us.'},
-        {type:'C-suite executive at a mid-size company (50–500 employees)',why:'More accessible than enterprise executives and often more willing to mentor or engage with peers.',message:'Hi [Name], I\'ve been following [Company]\'s trajectory and it\'s impressive what you\'ve built. I\'d love to connect — I\'m selectively expanding my network with operators who\'ve scaled teams, and your profile stood out.'},
-        {type:'Former executive turned advisor/investor',why:'They have senior credibility, time to engage, and love meeting ambitious people in their former sector.',message:'Hi [Name], your transition from [role] to advising is a path I find fascinating. I\'d love to connect and learn from your vantage point on what actually matters at the executive level.'},
-        {type:'Board member or independent director',why:'Often open to connecting and offer a unique cross-industry perspective that most networks lack.',message:'Hi [Name], your board work across multiple companies gives you a rare strategic lens. I\'m building relationships with board-level thinkers and your profile immediately stood out. Would be glad to connect.'},
-        {type:'Division president at a large enterprise',why:'Has enterprise resources + decision-making authority in a defined domain — great for B2B relationships or career sponsorship.',message:'Hi [Name], leading a division of [Company]\'s scale means you see challenges most people only read about. I\'m focused on growing relationships with senior operators and would welcome the connection.'},
+        {type:'VP of Strategy at a company in your sector',person:{name:'Alex Rivera',title:'VP of Strategy',company:'Meridian Technologies',liSearch:'https://www.linkedin.com/search/results/people/?keywords=VP+Strategy+technology+director&network=%5B%22S%22%5D'},why:'Senior enough to make decisions, junior enough to be accessible. They sit where strategy meets execution.',message:'Hi [Name], your work in [area] at [Company] is exactly the kind of strategic perspective I\'m looking to learn from. I\'d love to connect and perhaps compare notes on [topic] — I think there\'s real value in the exchange for both of us.'},
+        {type:'C-suite executive at a mid-size company (50–500 employees)',person:{name:'Priya Nair',title:'Chief Operating Officer',company:'Helix Health (280 employees)',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Chief+Operating+Officer+mid-size+company&network=%5B%22S%22%5D'},why:'More accessible than enterprise executives and often more willing to mentor or engage with peers.',message:'Hi [Name], I\'ve been following [Company]\'s trajectory and it\'s impressive what you\'ve built. I\'d love to connect — I\'m selectively expanding my network with operators who\'ve scaled teams, and your profile stood out.'},
+        {type:'Former executive turned advisor/investor',person:{name:'David Chen',title:'Strategic Advisor & Investor',company:'Ex-VP at Salesforce',liSearch:'https://www.linkedin.com/search/results/people/?keywords=former+executive+VP+advisor+investor&network=%5B%22S%22%5D'},why:'They have senior credibility, time to engage, and love meeting ambitious people in their former sector.',message:'Hi [Name], your transition from [role] to advising is a path I find fascinating. I\'d love to connect and learn from your vantage point on what actually matters at the executive level.'},
+        {type:'Board member or independent director',person:{name:'Sarah Kim',title:'Independent Board Director',company:'3 active board seats',liSearch:'https://www.linkedin.com/search/results/people/?keywords=independent+board+director+advisor&network=%5B%22S%22%5D'},why:'Often open to connecting and offer a unique cross-industry perspective that most networks lack.',message:'Hi [Name], your board work across multiple companies gives you a rare strategic lens. I\'m building relationships with board-level thinkers and your profile immediately stood out. Would be glad to connect.'},
+        {type:'Division president at a large enterprise',person:{name:'Marcus Webb',title:'Division President',company:'Honeywell Industrial',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Division+President+enterprise+large+company&network=%5B%22S%22%5D'},why:'Has enterprise resources + decision-making authority in a defined domain — great for B2B relationships or career sponsorship.',message:'Hi [Name], leading a division of [Company]\'s scale means you see challenges most people only read about. I\'m focused on growing relationships with senior operators and would welcome the connection.'},
       ]
     });
   }
@@ -1061,11 +1102,11 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
       insight:`Founders represent only ${stats.founderPct}% of your network. Entrepreneurs are high-velocity connectors who share opportunities freely and often pull their network along with them.`,
       searchQuery:`LinkedIn search: "Founder" OR "Co-Founder" OR "CEO" at companies with 1–50 employees — filter by location and industry`,
       profiles:[
-        {type:'Early-stage founder (pre-Series A)',why:'Most open to connecting, highly motivated to build their network, and may become tomorrow\'s unicorn CEO.',message:'Hi [Name], what you\'re building at [Company] looks really interesting — I came across your profile and wanted to connect with more founders working in this space. I\'m always looking to add value where I can. Would love to be in each other\'s orbit.'},
-        {type:'Serial entrepreneur (2+ companies)',why:'Pattern recognition across multiple ventures makes them extraordinarily valuable as thought partners and connectors.',message:'Hi [Name], building multiple companies from scratch is a rare skill set and I deeply respect the journey. I\'m intentionally building relationships with founders who\'ve navigated multiple chapters — your experience is exactly that. Would be glad to connect.'},
-        {type:'Startup COO or founding team member',why:'Often more accessible than the CEO, equally well-networked, and decision-makers in their own right.',message:'Hi [Name], the operational layer of a startup is where the real leverage lives, and your work at [Company] reflects that. I\'m looking to build stronger ties with operational leaders in the startup ecosystem — would you be open to connecting?'},
-        {type:'Founder turned investor (angel/VC)',why:'Bridges the operating and investing worlds, connects you to both communities, and often makes introductions generously.',message:'Hi [Name], moving from founding to investing gives you a perspective that\'s incredibly rare — you can read a business from both sides of the table. That\'s exactly the kind of thinking I want more of in my network. Would love to connect.'},
-        {type:'Community builder / startup ecosystem leader',why:'Knows everyone, hosts events, makes introductions — one relationship here multiplies across dozens.',message:'Hi [Name], the work you\'re doing to build the [startup/tech] community is genuinely valuable and underappreciated. I\'d love to connect and find ways to support and contribute — I believe great communities are worth investing in.'},
+        {type:'Early-stage founder (pre-Series A)',person:{name:'Jordan Park',title:'Founder & CEO',company:'Stackr AI (18 employees)',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Founder+CEO+startup+pre-series+A&network=%5B%22S%22%5D'},why:'Most open to connecting, highly motivated to build their network, and may become tomorrow\'s unicorn CEO.',message:'Hi [Name], what you\'re building at [Company] looks really interesting — I came across your profile and wanted to connect with more founders working in this space. I\'m always looking to add value where I can. Would love to be in each other\'s orbit.'},
+        {type:'Serial entrepreneur (2+ companies)',person:{name:'Mei Zhang',title:'Co-Founder',company:'3rd venture · ex-Brex · ex-Figma',liSearch:'https://www.linkedin.com/search/results/people/?keywords=serial+entrepreneur+co-founder+multiple+companies&network=%5B%22S%22%5D'},why:'Pattern recognition across multiple ventures makes them extraordinarily valuable as thought partners and connectors.',message:'Hi [Name], building multiple companies from scratch is a rare skill set and I deeply respect the journey. I\'m intentionally building relationships with founders who\'ve navigated multiple chapters — your experience is exactly that. Would be glad to connect.'},
+        {type:'Startup COO or founding team member',person:{name:'Tyler Brooks',title:'COO & Co-Founder',company:'Nova Logistics Tech',liSearch:'https://www.linkedin.com/search/results/people/?keywords=COO+co-founder+startup+founding+team&network=%5B%22S%22%5D'},why:'Often more accessible than the CEO, equally well-networked, and decision-makers in their own right.',message:'Hi [Name], the operational layer of a startup is where the real leverage lives, and your work at [Company] reflects that. I\'m looking to build stronger ties with operational leaders in the startup ecosystem — would you be open to connecting?'},
+        {type:'Founder turned investor (angel/VC)',person:{name:'Aisha Thompson',title:'Angel Investor',company:'Ex-CEO at Flowly.io',liSearch:'https://www.linkedin.com/search/results/people/?keywords=founder+turned+angel+investor+VC&network=%5B%22S%22%5D'},why:'Bridges the operating and investing worlds, connects you to both communities, and often makes introductions generously.',message:'Hi [Name], moving from founding to investing gives you a perspective that\'s incredibly rare — you can read a business from both sides of the table. That\'s exactly the kind of thinking I want more of in my network. Would love to connect.'},
+        {type:'Community builder / startup ecosystem leader',person:{name:'Carlos Mendez',title:'Founder & Director',company:'Austin Tech Founders Network',liSearch:'https://www.linkedin.com/search/results/people/?keywords=startup+ecosystem+community+builder+founder&network=%5B%22S%22%5D'},why:'Knows everyone, hosts events, makes introductions — one relationship here multiplies across dozens.',message:'Hi [Name], the work you\'re doing to build the [startup/tech] community is genuinely valuable and underappreciated. I\'d love to connect and find ways to support and contribute — I believe great communities are worth investing in.'},
       ]
     });
   }
@@ -1078,11 +1119,11 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
       insight:`${stats.insiderPct}% of your network is concentrated in just 3 companies — a dangerously narrow base. Cross-industry connectors reduce your dependency and surface unexpected opportunities.`,
       searchQuery:`LinkedIn search: professionals in adjacent industries to yours — try "Strategy" OR "Innovation" OR "Partnerships" at companies outside your top 3`,
       profiles:[
-        {type:'Strategy professional at a company in a different industry',why:'They solve the same class of problems you do but in a different context — cross-pollination is extraordinarily valuable.',message:'Hi [Name], your strategy work at [Company] caught my attention — the problems you solve there have real parallels to challenges in my world. I\'m deliberately building cross-industry relationships and think there\'s a lot we could learn from each other. Would you be open to connecting?'},
-        {type:'Industry analyst or research consultant',why:'Sees across sectors by definition. Excellent source of trend signals and introductions to diverse networks.',message:'Hi [Name], your research in [area] gives you a rare bird\'s-eye view across sectors. I\'m building relationships with people who think at that altitude — would love to connect and exchange perspectives.'},
-        {type:'Chief Innovation Officer or transformation lead',why:'Their job is cross-industry boundary-crossing. Perfect connector profile.',message:'Hi [Name], innovation leaders are some of the most cross-functional people I know — you\'re forced to look outside your industry to find signals. That\'s exactly the kind of thinker I want more of in my network.'},
-        {type:'Consultant or advisor who serves multiple industries',why:'Lives at the intersection — knows everyone across sectors and makes introductions fluidly.',message:'Hi [Name], working across multiple industries means you see patterns others miss. I\'m trying to build that same cross-sector perspective and want to connect with people like you who live at those intersections.'},
-        {type:'Academic researcher or think tank fellow',why:'Deeply networked across institutions and industries, often very willing to connect with practitioners.',message:'Hi [Name], your research on [topic] bridges practice and theory in a way I find genuinely valuable. I\'d love to connect and learn more about your work — and share what I\'m seeing from the practitioner side.'},
+        {type:'Strategy professional at a company in a different industry',person:{name:'Rachel Wong',title:'Head of Corporate Strategy',company:'Archer Daniels Midland',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Head+Corporate+Strategy+cross-industry&network=%5B%22S%22%5D'},why:'They solve the same class of problems you do but in a different context — cross-pollination is extraordinarily valuable.',message:'Hi [Name], your strategy work at [Company] caught my attention — the problems you solve there have real parallels to challenges in my world. I\'m deliberately building cross-industry relationships and think there\'s a lot we could learn from each other. Would you be open to connecting?'},
+        {type:'Industry analyst or research consultant',person:{name:'Ben Foster',title:'Research Director',company:'Gartner Research',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Research+Director+industry+analyst+consultant&network=%5B%22S%22%5D'},why:'Sees across sectors by definition. Excellent source of trend signals and introductions to diverse networks.',message:'Hi [Name], your research in [area] gives you a rare bird\'s-eye view across sectors. I\'m building relationships with people who think at that altitude — would love to connect and exchange perspectives.'},
+        {type:'Chief Innovation Officer or transformation lead',person:{name:'Vanessa Torres',title:'Chief Innovation Officer',company:'Banner Health',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Chief+Innovation+Officer+transformation+lead&network=%5B%22S%22%5D'},why:'Their job is cross-industry boundary-crossing. Perfect connector profile.',message:'Hi [Name], innovation leaders are some of the most cross-functional people I know — you\'re forced to look outside your industry to find signals. That\'s exactly the kind of thinker I want more of in my network.'},
+        {type:'Consultant or advisor who serves multiple industries',person:{name:'Omar Hassan',title:'Managing Director',company:'Kearney Consulting',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Managing+Director+consulting+multiple+industries&network=%5B%22S%22%5D'},why:'Lives at the intersection — knows everyone across sectors and makes introductions fluidly.',message:'Hi [Name], working across multiple industries means you see patterns others miss. I\'m trying to build that same cross-sector perspective and want to connect with people like you who live at those intersections.'},
+        {type:'Academic researcher or think tank fellow',person:{name:'Dr. Jamie Lin',title:'Research Fellow & Adjunct Professor',company:'MIT Sloan School of Management',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Research+Fellow+professor+think+tank&network=%5B%22S%22%5D'},why:'Deeply networked across institutions and industries, often very willing to connect with practitioners.',message:'Hi [Name], your research on [topic] bridges practice and theory in a way I find genuinely valuable. I\'d love to connect and learn more about your work — and share what I\'m seeing from the practitioner side.'},
       ]
     });
   }
@@ -1095,11 +1136,11 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
       insight:`Your average message depth is only ${stats.avgDepth} messages per contact. Strong peer relationships — people who know your work at eye level — are your best source of referrals, co-creation, and advocacy.`,
       searchQuery:`LinkedIn search: people at your approximate career level (similar titles, years of experience) — filter by mutual connections`,
       profiles:[
-        {type:'Peer professional in your field at a different company',why:'Will refer you, co-author with you, and advocate for you precisely because they understand what you do.',message:'Hi [Name], we\'re working on very similar problems from different vantage points — I\'d love to compare notes. I\'m building more peer relationships with people doing serious work in this space. Would you be up for a 20-minute conversation?'},
-        {type:'Former colleague from any past company',why:'Shared history = instant trust. Re-engaging past colleagues is dramatically underrated.',message:'Hi [Name], it\'s been too long! I\'ve been thinking about the time we worked together and realized we\'ve drifted out of touch. Would love to reconnect and hear what you\'ve been working on since then.'},
-        {type:'Peer from a professional association or conference',why:'Already pre-qualified by shared interests. Events create a natural opening for deeper connection.',message:'Hi [Name], I think we crossed paths at [event/association] and I\'ve been meaning to reach out properly. I\'m trying to deepen a few peer relationships this year and your background stood out. Would you be open to a conversation?'},
-        {type:'Emerging leader 2–3 years behind you in career',why:'You can genuinely mentor them, and rising stars become future decision-makers and advocates.',message:'Hi [Name], your trajectory has caught my attention — I remember being at a similar stage and wishing I had more senior peers willing to engage. I\'d love to connect and be a resource for you as you continue to grow.'},
-        {type:'Peer from a competitor or adjacent company',why:'Cross-competitive peer relationships are rare and valuable — both for knowledge and for future opportunities.',message:'Hi [Name], we\'re working in the same space from different angles — I find those peer relationships some of the most valuable I have. No agenda other than genuine connection and the occasional exchange of perspectives. Would you be open to it?'},
+        {type:'Peer professional in your field at a different company',person:{name:'Sam Patel',title:'Senior Product Manager',company:'Stripe',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Senior+Product+Manager+technology+peer&network=%5B%22S%22%5D'},why:'Will refer you, co-author with you, and advocate for you precisely because they understand what you do.',message:'Hi [Name], we\'re working on very similar problems from different vantage points — I\'d love to compare notes. I\'m building more peer relationships with people doing serious work in this space. Would you be up for a 20-minute conversation?'},
+        {type:'Former colleague from any past company',person:{name:'Lisa Chen',title:'Director of Marketing',company:'Canva',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Director+Marketing+former+colleague&network=%5B%22S%22%5D'},why:'Shared history = instant trust. Re-engaging past colleagues is dramatically underrated.',message:'Hi [Name], it\'s been too long! I\'ve been thinking about the time we worked together and realized we\'ve drifted out of touch. Would love to reconnect and hear what you\'ve been working on since then.'},
+        {type:'Peer from a professional association or conference',person:{name:'Michael Okafor',title:'Senior Software Engineer',company:'Mozilla Foundation',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Senior+Engineer+professional+association+conference&network=%5B%22S%22%5D'},why:'Already pre-qualified by shared interests. Events create a natural opening for deeper connection.',message:'Hi [Name], I think we crossed paths at [event/association] and I\'ve been meaning to reach out properly. I\'m trying to deepen a few peer relationships this year and your background stood out. Would you be open to a conversation?'},
+        {type:'Emerging leader 2–3 years behind you in career',person:{name:'Zoe Park',title:'Associate Consultant',company:'McKinsey & Company',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Associate+Consultant+emerging+leader+rising+star&network=%5B%22S%22%5D'},why:'You can genuinely mentor them, and rising stars become future decision-makers and advocates.',message:'Hi [Name], your trajectory has caught my attention — I remember being at a similar stage and wishing I had more senior peers willing to engage. I\'d love to connect and be a resource for you as you continue to grow.'},
+        {type:'Peer from a competitor or adjacent company',person:{name:'Nathan Rivera',title:'Senior Business Analyst',company:'Adjacent competitor firm',liSearch:'https://www.linkedin.com/search/results/people/?keywords=Senior+Analyst+Business+adjacent+industry+peer&network=%5B%22S%22%5D'},why:'Cross-competitive peer relationships are rare and valuable — both for knowledge and for future opportunities.',message:'Hi [Name], we\'re working in the same space from different angles — I find those peer relationships some of the most valuable I have. No agenda other than genuine connection and the occasional exchange of perspectives. Would you be open to it?'},
       ]
     });
   }
@@ -1112,11 +1153,11 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
       insight:`You only have ${warmResult.directCount} connections at ${warmResult.targetCo}, your top company. Deeper penetration at one strategic company can unlock referrals, insider intelligence, and warm introductions.`,
       searchQuery:`LinkedIn search: current employees at "${warmResult.targetCo}" — filter by department relevant to your goals`,
       profiles:[
-        {type:`Recruiter or Talent Partner at ${warmResult.targetCo}`,why:'Knows hiring plans before they\'re posted and can flag you for opportunities — often very willing to connect.',message:`Hi [Name], I\'ve been following ${warmResult.targetCo}'s growth with a lot of interest. I\'d love to connect and learn more about the direction of the team and the culture there. I may also be someone who could be a resource for referrals given my network. Would you be open to connecting?`},
-        {type:`Senior individual contributor in your functional area at ${warmResult.targetCo}`,why:'Will give you the honest insider view and may become an internal advocate.',message:`Hi [Name], your work at ${warmResult.targetCo} in [area] is something I\'ve been following. I\'d love to connect with serious practitioners there — I think there\'s a lot of mutual value in exchanging perspectives.`},
-        {type:`Department head or team lead at ${warmResult.targetCo}`,why:'Decision-maker who can sponsor you for consulting, collaboration, or employment.',message:`Hi [Name], leading [function] at ${warmResult.targetCo} puts you at the center of something I find really compelling. I\'m selectively building deeper relationships with leaders at companies I admire — would you be open to connecting?`},
-        {type:`Alumni of ${warmResult.targetCo} who has since moved on`,why:'Will give candid perspective on culture, share current contacts, and may still refer you in.',message:`Hi [Name], your time at ${warmResult.targetCo} and what you\'ve built since is an interesting journey. I\'d love to connect — I\'m looking for people who can give me a nuanced perspective on how that company thinks and operates.`},
-        {type:`Product or business development leader at ${warmResult.targetCo}`,why:'Sits at the intersection of strategy and execution — often the person who decides to bring in external partners.',message:`Hi [Name], business development at ${warmResult.targetCo} means you\'re at the center of some of the most interesting decisions being made there. I\'d love to connect and find ways to add value — I think there\'s real potential for a useful relationship.`},
+        {type:`Recruiter or Talent Partner at ${warmResult.targetCo}`,person:{name:'Jamie Torres',title:'Senior Talent Acquisition Partner',company:warmResult.targetCo,liSearch:`https://www.linkedin.com/search/results/people/?keywords=Recruiter+Talent+${encodeURIComponent(warmResult.targetCo)}&network=%5B%22S%22%5D`},why:'Knows hiring plans before they\'re posted and can flag you for opportunities — often very willing to connect.',message:`Hi [Name], I\'ve been following ${warmResult.targetCo}'s growth with a lot of interest. I\'d love to connect and learn more about the direction of the team and the culture there. I may also be someone who could be a resource for referrals given my network. Would you be open to connecting?`},
+        {type:`Senior individual contributor in your functional area at ${warmResult.targetCo}`,person:{name:'Morgan Lee',title:'Senior Manager, Operations',company:warmResult.targetCo,liSearch:`https://www.linkedin.com/search/results/people/?keywords=Senior+Manager+${encodeURIComponent(warmResult.targetCo)}&network=%5B%22S%22%5D`},why:'Will give you the honest insider view and may become an internal advocate.',message:`Hi [Name], your work at ${warmResult.targetCo} in [area] is something I\'ve been following. I\'d love to connect with serious practitioners there — I think there\'s a lot of mutual value in exchanging perspectives.`},
+        {type:`Department head or team lead at ${warmResult.targetCo}`,person:{name:'Chris Park',title:'Director of Product',company:warmResult.targetCo,liSearch:`https://www.linkedin.com/search/results/people/?keywords=Director+Head+${encodeURIComponent(warmResult.targetCo)}&network=%5B%22S%22%5D`},why:'Decision-maker who can sponsor you for consulting, collaboration, or employment.',message:`Hi [Name], leading [function] at ${warmResult.targetCo} puts you at the center of something I find really compelling. I\'m selectively building deeper relationships with leaders at companies I admire — would you be open to connecting?`},
+        {type:`Alumni of ${warmResult.targetCo} who has since moved on`,person:{name:'Dana Reyes',title:'VP of Growth',company:`Ex-${warmResult.targetCo}`,liSearch:`https://www.linkedin.com/search/results/people/?keywords=alumni+${encodeURIComponent(warmResult.targetCo)}&network=%5B%22S%22%5D`},why:'Will give candid perspective on culture, share current contacts, and may still refer you in.',message:`Hi [Name], your time at ${warmResult.targetCo} and what you\'ve built since is an interesting journey. I\'d love to connect — I\'m looking for people who can give me a nuanced perspective on how that company thinks and operates.`},
+        {type:`Product or business development leader at ${warmResult.targetCo}`,person:{name:'Alex Kim',title:'Director of Business Development',company:warmResult.targetCo,liSearch:`https://www.linkedin.com/search/results/people/?keywords=Business+Development+Director+${encodeURIComponent(warmResult.targetCo)}&network=%5B%22S%22%5D`},why:'Sits at the intersection of strategy and execution — often the person who decides to bring in external partners.',message:`Hi [Name], business development at ${warmResult.targetCo} means you\'re at the center of some of the most interesting decisions being made there. I\'d love to connect and find ways to add value — I think there\'s real potential for a useful relationship.`},
       ]
     });
   }
@@ -1139,7 +1180,7 @@ async function startAnalysis(){
     const positions=await parseCSV(APP.files['Positions.csv'],0);
     const recRecv=APP.files['Recommendations_Received.csv']?await parseCSV(APP.files['Recommendations_Received.csv'],0):[];
     const recGiven=APP.files['Recommendations_Given.csv']?await parseCSV(APP.files['Recommendations_Given.csv'],0):[];
-    conns.forEach(r=>{r._name=((r['First Name']||'')+' '+(r['Last Name']||'')).trim();r._co=(r['Company']||'Unknown').trim();r._pos=(r['Position']||'').trim();r._date=parseDate(r['Connected On']);});
+    conns.forEach(r=>{r._name=((r['First Name']||'')+' '+(r['Last Name']||'')).trim();r._co=(r['Company']||'Unknown').trim();r._pos=(r['Position']||'').trim();r._date=parseDate(r['Connected On']);r._url=(r['URL']||'').trim();});
     const myCompanies=new Set(positions.map(p=>(p['Company Name']||'').toLowerCase().trim()).filter(Boolean));
     const userName=detectUserName(messages);
     const endorsersSet=new Set(endRecv.map(r=>((r['Endorser First Name']||'')+' '+(r['Endorser Last Name']||'')).trim().toLowerCase()));
@@ -1203,6 +1244,7 @@ async function startAnalysis(){
 // ══════════════════════════════════════════════════════════════
 function renderDashboard(){
   const{userName,hlResults,recip,vouchResults,resurrectionResults,archetypeResult,warmResult,conns,healthScore,priorSnapshot,weeklyActions,outreach30,expansionTargets}=APP.results;
+  const urlMap={}; conns.forEach(r=>{if(r._url) urlMap[r._name]=r._url;});
   const decay={Critical:0,Fading:0,Moderate:0,Strong:0};
   hlResults.forEach(r=>decay[r.status]=(decay[r.status]||0)+1);
   const total=conns.length;
@@ -1310,7 +1352,7 @@ function renderDashboard(){
         <div class="action-num">${i+1}</div>
         <div class="action-meta">
           <div class="cat-badge ${catClass[a.category]||'cat-strategic'}">${catLabel[a.category]||a.category}</div>
-          <div class="action-name">${esc(a.name)}</div>
+          <div class="action-name">${liLink(a.name,urlMap)}</div>
           <div class="action-sub">${esc(a.position)||'—'} · ${esc(a.company)}</div>
         </div>
         <div style="font-size:.75rem;color:var(--text-3);text-align:right;flex-shrink:0">Vouch ${a.vouch}</div>
@@ -1335,7 +1377,7 @@ function renderDashboard(){
       <div class="oc-header">
         <div class="oc-rank">${i+1}</div>
         <div class="oc-info">
-          <div class="oc-name">${esc(r.name)}</div>
+          <div class="oc-name">${liLink(r.name,urlMap)}</div>
           <div class="oc-sub">${esc(r.position)||'—'} · ${esc(r.company)}</div>
         </div>
         <div class="oc-scores">
@@ -1374,6 +1416,7 @@ function renderDashboard(){
         ${gap.profiles.map((p,pi)=>`
         <div class="profile-card">
           <div class="profile-type">${esc(p.type)}</div>
+          ${p.person?`<div class="example-person"><div class="ep-name"><a href="${p.person.liSearch}" target="_blank" rel="noopener">${esc(p.person.name)}</a></div><div class="ep-role">${esc(p.person.title)} · ${esc(p.person.company)}</div><div class="ep-meta"><span class="otc-badge">● Open to Connect</span></div></div>`:''}
           <div class="profile-why">${esc(p.why)}</div>
           <div class="profile-msg-wrap">
             <div class="msg-label">Cold Outreach</div>
@@ -1397,7 +1440,7 @@ function renderDashboard(){
         <h3>Worth Saving — expiring in &lt;90 days</h3>
         <div class="contact-list">${worthSaving.length?worthSaving.map(r=>`
           <div class="contact-item">
-            <div class="contact-name">${esc(r.name)}</div>
+            <div class="contact-name">${liLink(r.name,urlMap)}</div>
             <div class="contact-co">${esc(r.company)}</div>
             <div class="contact-meta" style="color:var(--orange)">${r.duc} days until critical &nbsp;·&nbsp; ${Math.round(r.strength*100)}% strength</div>
           </div>`).join(''):'<div style="color:var(--text-2);font-size:.84rem;padding:12px 0">None in this window — healthy network!</div>'}</div>
@@ -1406,7 +1449,7 @@ function renderDashboard(){
         <h3>Critical Relationships — Top 15</h3>
         <div class="contact-list">${critical15.map(r=>`
           <div class="contact-item">
-            <div class="contact-name">${esc(r.name)}</div>
+            <div class="contact-name">${liLink(r.name,urlMap)}</div>
             <div class="contact-co">${esc(r.company)}</div>
             <div class="contact-meta" style="color:var(--red)">${Math.round(r.strength*100)}% strength remaining</div>
           </div>`).join('')}</div>
@@ -1417,7 +1460,7 @@ function renderDashboard(){
       <div class="table-wrap">
         <table><thead><tr><th>Name</th><th>Company</th><th>Strength</th><th>Status</th><th>Days Until Critical</th><th>Messages</th></tr></thead>
         <tbody>${hlResults.slice(0,60).map(r=>`<tr>
-          <td class="td-name">${esc(r.name)}</td>
+          <td class="td-name">${liLink(r.name,urlMap)}</td>
           <td class="td-muted">${esc(r.company)}</td>
           <td class="td-num">${Math.round(r.strength*100)}%</td>
           <td>${pill(r.status)}</td>
@@ -1439,7 +1482,7 @@ function renderDashboard(){
         <p style="font-size:.78rem;color:var(--text-2);margin-bottom:14px;line-height:1.5">Socially primed to say yes to a request.</p>
         <div class="table-wrap"><table><thead><tr><th>Name</th><th>Balance</th><th>Recv</th><th>Given</th></tr></thead>
         <tbody>${recip.oweMe.map(r=>`<tr>
-          <td class="td-name">${esc(r.name)}</td>
+          <td class="td-name">${liLink(r.name,urlMap)}</td>
           <td class="td-num" style="color:var(--green)">+${r.balance}</td>
           <td class="td-muted">${r.recvPts}</td>
           <td class="td-muted">${r.givenPts}</td>
@@ -1450,7 +1493,7 @@ function renderDashboard(){
         <p style="font-size:.78rem;color:var(--text-2);margin-bottom:14px;line-height:1.5">Write a recommendation or endorse unprompted.</p>
         <div class="table-wrap"><table><thead><tr><th>Name</th><th>Balance</th><th>Recv</th><th>Given</th></tr></thead>
         <tbody>${recip.iOwe.map(r=>`<tr>
-          <td class="td-name">${esc(r.name)}</td>
+          <td class="td-name">${liLink(r.name,urlMap)}</td>
           <td class="td-num" style="color:var(--red)">${r.balance}</td>
           <td class="td-muted">${r.recvPts}</td>
           <td class="td-muted">${r.givenPts}</td>
@@ -1471,7 +1514,7 @@ function renderDashboard(){
           const c=r.score>=50?'var(--green)':r.score>=30?'var(--accent-2)':r.score>=15?'var(--yellow)':'var(--text-2)';
           return `<tr>
             <td class="td-muted">${i+1}</td>
-            <td class="td-name">${esc(r.name)}</td>
+            <td class="td-name">${liLink(r.name,urlMap)}</td>
             <td class="td-muted">${esc(r.company)}</td>
             <td class="td-muted">${esc(r.position)}</td>
             <td class="td-num" style="color:${c}">${r.score}</td>
@@ -1493,7 +1536,7 @@ function renderDashboard(){
       <div class="table-wrap">
         <table><thead><tr><th>Name</th><th>Company</th><th>Category</th><th>Dormant</th><th>Re-entry Hook</th></tr></thead>
         <tbody>${resurrectionResults.length?resurrectionResults.map(r=>`<tr>
-          <td class="td-name">${esc(r.name)}</td>
+          <td class="td-name">${liLink(r.name,urlMap)}</td>
           <td class="td-muted">${esc(r.company)}</td>
           <td><span style="color:${resCatColors[r.category]||'var(--text-2)'};font-size:.78rem;font-weight:600">${esc(r.category)}</span></td>
           <td class="td-muted">${r.daysDormant}d</td>
@@ -1553,7 +1596,7 @@ function renderDashboard(){
         <table><thead><tr><th>#</th><th>Name</th><th>Title</th><th>Vouch</th><th>Decay</th></tr></thead>
         <tbody>${direct.map((r,i)=>{
           const c=r.vouch>=50?'var(--green)':r.vouch>=30?'var(--accent-2)':r.vouch>=15?'var(--yellow)':'var(--text-2)';
-          return `<tr><td class="td-muted">${i+1}</td><td class="td-name">${esc(r.name)}</td><td class="td-muted">${esc(r.position)}</td><td class="td-num" style="color:${c}">${r.vouch}</td><td>${pill(r.decay)}</td></tr>`;
+          return `<tr><td class="td-muted">${i+1}</td><td class="td-name">${liLink(r.name,urlMap)}</td><td class="td-muted">${esc(r.position)}</td><td class="td-num" style="color:${c}">${r.vouch}</td><td>${pill(r.decay)}</td></tr>`;
         }).join('')}</tbody></table>
       </div>
     </div>
@@ -1563,7 +1606,7 @@ function renderDashboard(){
         <table><thead><tr><th>#</th><th>Name</th><th>Company</th><th>Title</th><th>Vouch</th></tr></thead>
         <tbody>${bridges.map((r,i)=>{
           const c=r.vouch>=30?'var(--accent-2)':r.vouch>=15?'var(--yellow)':'var(--text-2)';
-          return `<tr><td class="td-muted">${i+1}</td><td class="td-name">${esc(r.name)}</td><td class="td-muted">${esc(r.company)}</td><td class="td-muted">${esc(r.position)}</td><td class="td-num" style="color:${c}">${r.vouch}</td></tr>`;
+          return `<tr><td class="td-muted">${i+1}</td><td class="td-name">${liLink(r.name,urlMap)}</td><td class="td-muted">${esc(r.company)}</td><td class="td-muted">${esc(r.position)}</td><td class="td-num" style="color:${c}">${r.vouch}</td></tr>`;
         }).join('')}</tbody></table>
       </div>
     </div>`;
@@ -1620,6 +1663,7 @@ function buildSearchTab(){
   const{vouchResults,conns}=APP.results;
   const vouchMap={},decayMap={},lastMap={};
   vouchResults.forEach(r=>{vouchMap[r.name]=r.score;decayMap[r.name]=r.decayStatus;lastMap[r.name]=r.lastContact;});
+  const urlMap={}; conns.forEach(r=>{if(r._url) urlMap[r._name]=r._url;});
   const allConns=conns.map(c=>({n:c._name,c:c._co,p:c._pos,v:vouchMap[c._name]||0,d:decayMap[c._name]||'Critical',l:lastMap[c._name]?fmtDate(lastMap[c._name]):''}));
   const coCounts={};allConns.forEach(r=>{if(r.c&&r.c!=='Unknown')coCounts[r.c]=(coCounts[r.c]||0)+1;});
   const coList=Object.entries(coCounts).sort((a,b)=>b[1]-a[1]);
@@ -1707,7 +1751,7 @@ function buildSearchTab(){
       const cl=r.v>=50?'Very Close':r.v>=30?'Close':r.v>=15?'Acquainted':r.v>=5?'Distant':'Cold';
       tbody.innerHTML+=`<tr>
         <td class="td-muted">${i+1}</td>
-        <td class="td-name">${esc(r.n)}</td>
+        <td class="td-name">${liLink(r.n,urlMap)}</td>
         <td class="td-muted">${esc(r.p)}</td>
         <td class="td-num" style="color:${c}">${r.v}</td>
         <td><span style="color:${c};font-size:.75rem;font-weight:600">${cl}</span></td>
@@ -1767,7 +1811,7 @@ function downloadDashboard(){
 
 function generateStandaloneHTML(userName,b64){
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>${esc(userName)} — Kai\'s Network Intelligence</title>
+<html lang="en"><head><meta charset="UTF-8"><title>${esc(userName)} — Kai's Network Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1827,7 +1871,7 @@ tbody tr:hover td{background:rgba(99,102,241,.04)}
 <div class="app-bar">
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="6" r="4" fill="#818cf8"/><circle cx="6" cy="22" r="3.5" fill="#6366f1"/><circle cx="24" cy="22" r="3.5" fill="#6366f1"/><circle cx="15" cy="16" r="2.5" fill="#a5b4fc"/><line x1="15" y1="10" x2="15" y2="13.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/><line x1="13.2" y1="17.5" x2="8.2" y2="20.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/><line x1="16.8" y1="17.5" x2="21.8" y2="20.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/></svg>
-    <span class="brand-name">Kai\'s Network<span>Intelligence</span></span>
+    <span class="brand-name">Kai's Network<span>Intelligence</span></span>
   </div>
   <div class="app-bar-divider"></div>
   <div><div class="dash-user-name">${esc(userName)}</div><div class="dash-user-meta" id="sub"></div></div>
@@ -1860,21 +1904,21 @@ document.getElementById('nav').addEventListener('click',function(e){const b=e.ta
 document.getElementById('pg-ov').innerHTML='<div class="grid g4" style="margin-bottom:20px"><div class="card card-accent"><h3>Total Connections</h3><div class="big-num">'+t.toLocaleString()+'</div><div class="card-sub">'+a.stats.uniqueCos.toLocaleString()+' unique companies</div></div><div class="card"><h3>Archetype</h3><div style="font-size:1.4rem;font-weight:800;color:var(--accent-2)">'+a.primary+'</div><div class="card-sub">Score '+a.scores[a.primary]+'/100</div></div><div class="card"><h3>At Risk</h3><div class="big-num" style="color:var(--red)">'+((d.Critical||0)+(d.Fading||0)).toLocaleString()+'</div><div class="card-sub">'+(d.Critical||0)+' critical</div></div><div class="card"><h3>Resurrection Opps</h3><div class="big-num" style="color:var(--accent-2)">'+D.resurrection.length+'</div></div></div><div class="card"><h3>Relationship Health</h3><div style="display:flex;gap:20px;margin-top:10px">'+['Critical','Fading','Moderate','Strong'].map(k=>'<div><div style="font-size:1.4rem;font-weight:800;color:'+({'Critical':'var(--red)','Fading':'var(--orange)','Moderate':'var(--yellow)','Strong':'var(--green)'}[k])+'">'+((d[k]||0)).toLocaleString()+'</div><div style="font-size:.75rem;color:var(--text-2);margin-top:2px">'+k+'</div></div>').join('')+'</div></div>';
 })();
 (function(){const ws=D.halfLife.worthSaving,all=D.halfLife.all;
-document.getElementById('pg-hl').innerHTML='<div class="pg-header"><h2>Relationship Half-Life</h2></div><div class="grid g2" style="margin-bottom:20px"><div class="card"><h3>Worth Saving — expiring &lt;90 days</h3>'+ws.map(r=>'<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div style="font-weight:600">'+esc(r.name)+'</div><div style="font-size:.79rem;color:var(--text-2)">'+esc(r.company)+'</div><div style="font-size:.76rem;color:var(--orange);margin-top:2px">'+r.duc+' days until critical</div></div>').join('')+'</div><div class="card"><h3>Top Critical</h3>'+D.halfLife.critical.map(r=>'<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div style="font-weight:600">'+esc(r.name)+'</div><div style="font-size:.79rem;color:var(--red)">'+Math.round(r.strength*100)+'% strength</div></div>').join('')+'</div></div><div class="card"><h3>Full Decay Table</h3><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Company</th><th>Strength</th><th>Status</th><th>Days Until Critical</th><th>Messages</th></tr></thead><tbody>'+all.map(r=>'<tr><td class="td-name">'+esc(r.name)+'</td><td class="td-muted">'+esc(r.company)+'</td><td class="td-num">'+Math.round(r.strength*100)+'%</td><td>'+pill(r.status)+'</td><td class="td-muted">'+r.duc+'</td><td class="td-muted">'+r.msgCount+'</td></tr>').join('')+'</tbody></table></div></div>';
+document.getElementById('pg-hl').innerHTML='<div class="pg-header"><h2>Relationship Half-Life</h2></div><div class="grid g2" style="margin-bottom:20px"><div class="card"><h3>Worth Saving — expiring &lt;90 days</h3>'+ws.map(r=>'<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div style="font-weight:600">'+liLink(r.name,urlMap)+'</div><div style="font-size:.79rem;color:var(--text-2)">'+esc(r.company)+'</div><div style="font-size:.76rem;color:var(--orange);margin-top:2px">'+r.duc+' days until critical</div></div>').join('')+'</div><div class="card"><h3>Top Critical</h3>'+D.halfLife.critical.map(r=>'<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div style="font-weight:600">'+liLink(r.name,urlMap)+'</div><div style="font-size:.79rem;color:var(--red)">'+Math.round(r.strength*100)+'% strength</div></div>').join('')+'</div></div><div class="card"><h3>Full Decay Table</h3><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Company</th><th>Strength</th><th>Status</th><th>Days Until Critical</th><th>Messages</th></tr></thead><tbody>'+all.map(r=>'<tr><td class="td-name">'+liLink(r.name,urlMap)+'</td><td class="td-muted">'+esc(r.company)+'</td><td class="td-num">'+Math.round(r.strength*100)+'%</td><td>'+pill(r.status)+'</td><td class="td-muted">'+r.duc+'</td><td class="td-muted">'+r.msgCount+'</td></tr>').join('')+'</tbody></table></div></div>';
 })();
 (function(){const r=D.reciprocity;
-document.getElementById('pg-rc').innerHTML='<div class="pg-header"><h2>Reciprocity Ledger</h2></div><div class="grid g2"><div class="card"><h3>They Owe You</h3><table><thead><tr><th>Name</th><th>Balance</th></tr></thead><tbody>'+r.oweMe.map(x=>'<tr><td class="td-name">'+esc(x.name)+'</td><td class="td-num" style="color:var(--green)">+'+x.balance+'</td></tr>').join('')+'</tbody></table></div><div class="card"><h3>You Owe Them</h3><table><thead><tr><th>Name</th><th>Balance</th></tr></thead><tbody>'+r.iOwe.map(x=>'<tr><td class="td-name">'+esc(x.name)+'</td><td class="td-num" style="color:var(--red)">'+x.balance+'</td></tr>').join('')+'</tbody></table></div></div>';
+document.getElementById('pg-rc').innerHTML='<div class="pg-header"><h2>Reciprocity Ledger</h2></div><div class="grid g2"><div class="card"><h3>They Owe You</h3><table><thead><tr><th>Name</th><th>Balance</th></tr></thead><tbody>'+r.oweMe.map(x=>'<tr><td class="td-name">'+liLink(x.name,urlMap)+'</td><td class="td-num" style="color:var(--green)">+'+x.balance+'</td></tr>').join('')+'</tbody></table></div><div class="card"><h3>You Owe Them</h3><table><thead><tr><th>Name</th><th>Balance</th></tr></thead><tbody>'+r.iOwe.map(x=>'<tr><td class="td-name">'+liLink(x.name,urlMap)+'</td><td class="td-num" style="color:var(--red)">'+x.balance+'</td></tr>').join('')+'</tbody></table></div></div>';
 })();
-(function(){document.getElementById('pg-vo').innerHTML='<div class="pg-header"><h2>Who Would Vouch for You</h2></div><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Name</th><th>Company</th><th>Score</th><th>Decay</th></tr></thead><tbody>'+D.vouchers.map((r,i)=>{const c=r.score>=50?'var(--green)':r.score>=30?'var(--accent-2)':r.score>=15?'var(--yellow)':'var(--text-2)';return '<tr><td class="td-muted">'+(i+1)+'</td><td class="td-name">'+esc(r.name)+'</td><td class="td-muted">'+esc(r.company)+'</td><td class="td-num" style="color:'+c+'">'+r.score+'</td><td>'+pill(r.decayStatus)+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+(function(){document.getElementById('pg-vo').innerHTML='<div class="pg-header"><h2>Who Would Vouch for You</h2></div><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Name</th><th>Company</th><th>Score</th><th>Decay</th></tr></thead><tbody>'+D.vouchers.map((r,i)=>{const c=r.score>=50?'var(--green)':r.score>=30?'var(--accent-2)':r.score>=15?'var(--yellow)':'var(--text-2)';return '<tr><td class="td-muted">'+(i+1)+'</td><td class="td-name">'+liLink(r.name,urlMap)+'</td><td class="td-muted">'+esc(r.company)+'</td><td class="td-num" style="color:'+c+'">'+r.score+'</td><td>'+pill(r.decayStatus)+'</td></tr>';}).join('')+'</tbody></table></div></div>';
 })();
 (function(){const cs={'Catch-up Never Happened':'var(--accent-2)','They Asked For Help':'var(--orange)','You Offered Help':'var(--green)','Career Transition':'var(--yellow)'};
-document.getElementById('pg-rs').innerHTML='<div class="pg-header"><h2>Resurrection Opportunities</h2><p>'+D.resurrection.length+' opportunities found in the 60–365 day window.</p></div><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Company</th><th>Category</th><th>Dormant</th><th>Hook</th></tr></thead><tbody>'+(D.resurrection.length?D.resurrection.map(r=>'<tr><td class="td-name">'+esc(r.name)+'</td><td class="td-muted">'+esc(r.company)+'</td><td><span style="color:'+(cs[r.category]||'var(--text-2)')+';font-size:.78rem;font-weight:600">'+esc(r.category)+'</span></td><td class="td-muted">'+r.daysDormant+'d</td><td class="hook-text">'+esc(r.hook)+'</td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text-2);padding:24px">None found.</td></tr>')+'</tbody></table></div></div>';
+document.getElementById('pg-rs').innerHTML='<div class="pg-header"><h2>Resurrection Opportunities</h2><p>'+D.resurrection.length+' opportunities found in the 60–365 day window.</p></div><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Company</th><th>Category</th><th>Dormant</th><th>Hook</th></tr></thead><tbody>'+(D.resurrection.length?D.resurrection.map(r=>'<tr><td class="td-name">'+liLink(r.name,urlMap)+'</td><td class="td-muted">'+esc(r.company)+'</td><td><span style="color:'+(cs[r.category]||'var(--text-2)')+';font-size:.78rem;font-weight:600">'+esc(r.category)+'</span></td><td class="td-muted">'+r.daysDormant+'d</td><td class="hook-text">'+esc(r.hook)+'</td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text-2);padding:24px">None found.</td></tr>')+'</tbody></table></div></div>';
 })();
 (function(){const a=D.archetype;
 document.getElementById('pg-ar').innerHTML='<div class="pg-header"><h2>Archetype: '+a.primary+'</h2></div><div class="grid g2" style="margin-bottom:20px"><div class="card"><h3>Scores</h3>'+Object.entries(a.scores).map(([n,s])=>'<div class="score-bar-wrap"><div class="score-bar-top"><span style="font-weight:'+(n===a.primary?700:400)+';color:'+(n===a.primary?'var(--text)':'var(--text-2)')+'">'+n+'</span><span style="color:'+(n===a.primary?'var(--accent-2)':'var(--text-3)')+'">'+s+'</span></div><div class="score-bar-track"><div class="score-bar-fill" style="width:'+s+'%;background:'+(n===a.primary?'linear-gradient(90deg,var(--accent),var(--accent-2))':'var(--surface-3)')+'"></div></div></div>').join('')+'</div><div class="card"><h3>Strategy</h3><div class="strategy-box">'+esc(a.strategy)+'</div></div></div>';
 })();
 (function(){const w=D.warmPath;
-document.getElementById('pg-wp').innerHTML='<div class="pg-header"><h2>Warm Path — '+esc(w.targetCo)+'</h2></div><div class="card"><h3>Direct Connections ('+w.directCount+')</h3><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Name</th><th>Title</th><th>Vouch</th><th>Decay</th></tr></thead><tbody>'+w.direct.map((r,i)=>{const c=r.vouch>=50?'var(--green)':r.vouch>=30?'var(--accent-2)':r.vouch>=15?'var(--yellow)':'var(--text-2)';return '<tr><td class="td-muted">'+(i+1)+'</td><td class="td-name">'+esc(r.name)+'</td><td class="td-muted">'+esc(r.position)+'</td><td class="td-num" style="color:'+c+'">'+r.vouch+'</td><td>'+pill(r.decay)+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+document.getElementById('pg-wp').innerHTML='<div class="pg-header"><h2>Warm Path — '+esc(w.targetCo)+'</h2></div><div class="card"><h3>Direct Connections ('+w.directCount+')</h3><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Name</th><th>Title</th><th>Vouch</th><th>Decay</th></tr></thead><tbody>'+w.direct.map((r,i)=>{const c=r.vouch>=50?'var(--green)':r.vouch>=30?'var(--accent-2)':r.vouch>=15?'var(--yellow)':'var(--text-2)';return '<tr><td class="td-muted">'+(i+1)+'</td><td class="td-name">'+liLink(r.name,urlMap)+'</td><td class="td-muted">'+esc(r.position)+'</td><td class="td-num" style="color:'+c+'">'+r.vouch+'</td><td>'+pill(r.decay)+'</td></tr>';}).join('')+'</tbody></table></div></div>';
 })();
 (function(){
 const all=D.allConnections||[];const coCounts={};all.forEach(r=>{if(r.c&&r.c!=='Unknown')coCounts[r.c]=(coCounts[r.c]||0)+1;});const coList=Object.entries(coCounts).sort((a,b)=>b[1]-a[1]);
@@ -1894,21 +1938,4 @@ function sRend(rows){const tb=document.getElementById('sTb'),em=document.getElem
 
 function download(filename,content,type){
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([content],{type}));
-  a.download=filename;a.click();
-}
-function showScreen(name){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+name).classList.add('active');}
-function restart(){
-  APP.files={};APP.data={};APP.results={};
-  document.getElementById('file-status').style.display='none';
-  document.getElementById('file-input').value='';
-  document.getElementById('run-btn').disabled=true;
-  showError('');
-  document.querySelectorAll('.step-item').forEach(s=>{s.className='step-item';s.querySelector('.step-dot').textContent='';});
-  document.getElementById('prog-bar').style.width='0%';
-  showScreen('upload');
-}
-
-</script>
-</body>
-</html>
+  a.href=URL
