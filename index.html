@@ -1168,6 +1168,12 @@ function computeExpansionTargets(conns,archetypeResult,vouchResults,warmResult){
 // ══════════════════════════════════════════════════════════════
 // MODIFIED: START ANALYSIS (adds step-intel + new features)
 // ══════════════════════════════════════════════════════════════
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  var el=document.getElementById('screen-'+name);
+  if(el) el.classList.add('active');
+}
+
 async function startAnalysis(){
   showScreen('processing');
   await sleep(50);
