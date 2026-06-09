@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- saved from url=(0256)file:///C:/Users/kaibo/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/local-agent-mode-sessions/37e02f35-8b95-42a1-b30d-c88294f24c4c/90e515c6-be7c-414d-9a3c-9b1a8eca09f2/local_2a8b4c1b-7709-482d-84e2-93e4f95b7758/outputs/welcome.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome — iLab53 Network Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./Welcome — iLab53 Network Intelligence_files/css2" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#080812;color:#eeeeff;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:#0e0e1c;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:48px 40px;max-width:520px;width:100%;text-align:center}
+  .check{width:56px;height:56px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+  .check svg{color:#22c55e}
+  h1{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+  .sub{color:#8888aa;font-size:.95rem;line-height:1.6;margin-bottom:32px}
+  .code-box{background:#151527;border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+  .code-label{font-size:.7rem;font-weight:600;color:#8888aa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  .code{font-size:1.8rem;font-weight:800;letter-spacing:.08em;color:#818cf8}
+  .site-btn{display:block;background:#6366f1;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:1rem;font-weight:600;margin-bottom:12px;transition:opacity .15s}
+  .site-btn:hover{opacity:.85}
+  .steps{background:#151527;border-radius:12px;padding:20px 24px;margin-bottom:24px;text-align:left}
+  .steps-title{font-size:.75rem;font-weight:600;color:#8888aa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  .step{font-size:.85rem;color:#8888aa;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:10px}
+  .step:last-child{border-bottom:none}
+  .step-num{color:#6366f1;font-weight:700;flex-shrink:0}
+  .cancel-link{font-size:.8rem;color:#44445a;text-decoration:none;display:block;margin-top:8px;transition:color .15s}
+  .cancel-link:hover{color:#8888aa}
+  .divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:24px 0}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="check">
+    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  </div>
+
+  <h1>You're in!</h1>
+  <p class="sub">Your subscription to iLab53 Network Intelligence is active. Here's everything you need to get started.</p>
+
+  <div class="code-box">
+    <div class="code-label">Your Access Code</div>
+    <div class="code" title="Click to copy" style="cursor: pointer;">ILAB53-PRO</div>
+  </div>
+
+  <a href="https://ilab53.github.io/network-intelligence/" class="site-btn">Go to the Dashboard →</a>
+
+  <hr class="divider">
+
+  <div class="steps">
+    <div class="steps-title">How to use the tool</div>
+    <div class="step"><span class="step-num">1</span><span>Go to the dashboard and enter your email + access code above</span></div>
+    <div class="step"><span class="step-num">2</span><span>On LinkedIn: Settings &amp; Privacy → Data privacy → Download your data → Request larger archive</span></div>
+    <div class="step"><span class="step-num">3</span><span>Wait for LinkedIn's email (up to 24 hrs), download the ZIP file</span></div>
+    <div class="step"><span class="step-num">4</span><span>Drag the ZIP into the upload box — your dashboard loads instantly</span></div>
+  </div>
+
+  <hr class="divider">
+
+  <p style="font-size:.8rem;color:#44445a;margin-bottom:8px">Questions? Email <a href="mailto:kaibode@gmail.com" style="color:#6366f1;text-decoration:none;">kaibode@gmail.com</a></p>
+  <a href="https://billing.stripe.com/p/login/test_00g00000000000" class="cancel-link" id="portal-link">Manage or cancel your subscription →</a>
+</div>
+<script>
+  // Copy code to clipboard on click
+  document.querySelector('.code').style.cursor = 'pointer';
+  document.querySelector('.code').title = 'Click to copy';
+  document.querySelector('.code').addEventListener('click', function(){
+    navigator.clipboard.writeText('ILAB53-PRO').then(function(){
+      document.querySelector('.code-label').textContent = '✓ Copied to clipboard!';
+      setTimeout(()=>{ document.querySelector('.code-label').textContent = 'Your Access Code'; }, 2000);
+    });
+  });
+</script>
+
+
+</body></html>
