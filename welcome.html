@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iLab53 Network Intelligence — Get Access</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#080812;color:#eeeeff;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:#0e0e1c;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:48px 40px;max-width:520px;width:100%;text-align:center}
+  .logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px}
+  .brand-name{font-size:1rem;font-weight:700;color:#eeeeff}
+  .brand-name span{color:#818cf8}
+  h1{font-size:1.55rem;font-weight:800;letter-spacing:-.03em;line-height:1.25;margin-bottom:12px}
+  .sub{color:#8888aa;font-size:.9rem;line-height:1.65;margin-bottom:28px}
+  .benefits{display:flex;flex-direction:column;gap:0;margin-bottom:24px;text-align:left;background:#151527;border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden}
+  .benefit{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .benefit:last-child{border-bottom:none}
+  .b-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .b-text{font-size:.85rem;color:#ccccee;line-height:1.4}
+  .b-text strong{color:#eeeeff;font-weight:600;display:block;margin-bottom:1px}
+  .preview-card{background:#0a0a18;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:0;margin-bottom:24px;overflow:hidden}
+  .preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .preview-title{font-size:.72rem;font-weight:700;color:#8888aa;text-transform:uppercase;letter-spacing:.08em}
+  .preview-badge{font-size:.7rem;font-weight:600;color:#818cf8;background:rgba(99,102,241,.12);padding:3px 9px;border-radius:20px}
+  .preview-row{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.04)}
+  .preview-row:last-of-type{border-bottom:none}
+  .p-left{display:flex;align-items:center;gap:10px}
+  .p-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+  .p-name{font-size:.83rem;font-weight:600;color:#ddddf5}
+  .p-role{font-size:.72rem;color:#5d5d7a}
+  .decay{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:6px}
+  .decay.red{background:rgba(239,68,68,.12);color:#f87171}
+  .decay.amber{background:rgba(251,191,36,.1);color:#fbbf24}
+  .decay.green{background:rgba(34,197,94,.1);color:#4ade80}
+  .preview-footer{padding:10px 16px;display:flex;align-items:center;gap:6px;background:rgba(99,102,241,.05);border-top:1px solid rgba(99,102,241,.1)}
+  .draft-dot{width:6px;height:6px;background:#818cf8;border-radius:50%;flex-shrink:0}
+  .draft-text{font-size:.75rem;color:#818cf8}
+  .section{background:#151527;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:22px 24px;margin-bottom:14px;text-align:left}
+  .section-label{font-size:.7rem;font-weight:700;color:#8888aa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+  .input-row{display:flex;gap:10px}
+  input[type=text]{flex:1;background:#0e0e1c;border:1px solid rgba(255,255,255,.12);color:#eeeeff;padding:11px 14px;border-radius:8px;font-size:.9rem;font-family:inherit;outline:none}
+  input[type=text]:focus{border-color:#6366f1}
+  input[type=text]::placeholder{color:#44445a}
+  .btn{background:#6366f1;color:#fff;border:none;padding:11px 18px;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .btn:hover{opacity:.85}
+  .btn-outline{display:block;background:none;border:1px solid rgba(99,102,241,.35);color:#818cf8;padding:14px;border-radius:10px;font-size:.95rem;font-weight:600;text-decoration:none;text-align:center;transition:all .15s}
+  .btn-outline:hover{background:rgba(99,102,241,.1)}
+  .price{font-size:1.5rem;font-weight:800;color:#eeeeff;margin-bottom:4px}
+  .price-sub{font-size:.8rem;color:#8888aa;margin-bottom:16px}
+  .error{color:#f87171;font-size:.8rem;margin-top:8px;display:none}
+  .divider{display:flex;align-items:center;gap:12px;margin:6px 0;color:#44445a;font-size:.8rem}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+  .success-box{display:none}
+  .code-box{background:#151527;border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:20px 24px;margin:20px 0}
+  .code-label{font-size:.7rem;font-weight:600;color:#8888aa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  .code{font-size:1.8rem;font-weight:800;letter-spacing:.08em;color:#818cf8;cursor:pointer}
+  .go-btn{display:block;background:#6366f1;color:#fff;text-decoration:none;padding:14px;border-radius:10px;font-size:1rem;font-weight:600;text-align:center;margin-top:12px}
+  .check{width:48px;height:48px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="6" r="4" fill="#818cf8"/><circle cx="6" cy="22" r="3.5" fill="#6366f1"/><circle cx="24" cy="22" r="3.5" fill="#6366f1"/><circle cx="15" cy="16" r="2.5" fill="#a5b4fc"/><line x1="15" y1="10" x2="15" y2="13.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/><line x1="13.2" y1="17.5" x2="8.2" y2="20.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/><line x1="16.8" y1="17.5" x2="21.8" y2="20.5" stroke="#6366f1" stroke-width="1.5" opacity=".7"/></svg>
+    <span class="brand-name">iLab53 <span>Network Intelligence</span></span>
+  </div>
+  <div id="landing">
+    <h1>Your network is fading.<br>Here's who to call.</h1>
+    <p class="sub">Upload your LinkedIn data once. iLab53 shows you who's drifting, who's a hidden asset, and exactly who to reconnect with — with the message already drafted.</p>
+    <div class="benefits">
+      <div class="benefit">
+        <div class="b-icon" style="background:rgba(99,102,241,.12)">
+          <svg width="16" height="16" fill="none" stroke="#818cf8" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="b-text"><strong>Relationship decay, ranked</strong>See every connection scored by recency and interaction — before relationships go cold.</div>
+      </div>
+      <div class="benefit">
+        <div class="b-icon" style="background:rgba(34,197,94,.1)">
+          <svg width="16" height="16" fill="none" stroke="#4ade80" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="b-text"><strong>Your weekly shortlist</strong>5–10 people you should message right now, prioritized by relationship strength and opportunity.</div>
+      </div>
+      <div class="benefit">
+        <div class="b-icon" style="background:rgba(251,191,36,.08)">
+          <svg width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="b-text"><strong>Drafts, ready to send</strong>Each reconnect comes with a personalized message drafted for you. Edit and send in seconds.</div>
+      </div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-header">
+        <span class="preview-title">Priority Reconnects &middot; This Week</span>
+        <span class="preview-badge">8 contacts</span>
+      </div>
+      <div class="preview-row">
+        <div class="p-left">
+          <div class="p-av" style="background:#4338ca">M</div>
+          <div><div class="p-name">Marcus W.</div><div class="p-role">VP Strategy &middot; Pharma</div></div>
+        </div>
+        <span class="decay red">9 mo</span>
+      </div>
+      <div class="preview-row">
+        <div class="p-left">
+          <div class="p-av" style="background:#0e7490">S</div>
+          <div><div class="p-name">Sarah C.</div><div class="p-role">Director &middot; Biotech</div></div>
+        </div>
+        <span class="decay amber">4 mo</span>
+      </div>
+      <div class="preview-row">
+        <div class="p-left">
+          <div class="p-av" style="background:#065f46">P</div>
+          <div><div class="p-name">Priya S.</div><div class="p-role">Head of BD &middot; MedTech</div></div>
+        </div>
+        <span class="decay green">3 wk</span>
+      </div>
+      <div class="preview-footer">
+        <div class="draft-dot"></div>
+        <span class="draft-text">Personalized draft ready for each contact</span>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">Have a promo code?</div>
+      <div class="input-row">
+        <input type="text" id="promo-input" placeholder="Enter your code" autocomplete="off" spellcheck="false">
+        <button class="btn" onclick="checkCode()">Access &#8594;</button>
+      </div>
+      <div class="error" id="promo-error">Invalid code. Please check and try again.</div>
+    </div>
+    <div class="divider">or</div>
+    <div class="section">
+      <div class="price">$5 <span style="font-size:1rem;font-weight:500;color:#8888aa">/ month</span></div>
+      <div class="price-sub">Cancel anytime &middot; Your data never leaves your browser</div>
+      <a href="https://buy.stripe.com/8x2cN71CD8AeaxJaOifbq02" class="btn-outline">Subscribe for $5/month &#8594;</a>
+    </div>
+  </div>
+  <div class="success-box" id="success">
+    <div class="check"><svg width="22" height="22" fill="none" stroke="#22c55e" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <h1 id="success-title">You're in!</h1>
+    <p class="sub" id="success-msg">Use the access code below to log in to the dashboard.</p>
+    <div class="code-box">
+      <div class="code-label" id="code-label">Your Access Code</div>
+      <div class="code" id="access-code" onclick="copyCode()">ILAB53-PRO</div>
+    </div>
+    <a href="https://ilab53.github.io/network-intelligence/" class="go-btn">Go to the Dashboard &#8594;</a>
+    <p style="margin-top:16px;font-size:.78rem;color:#44445a">Questions? <a href="mailto:kaibode@gmail.com" style="color:#6366f1;text-decoration:none">kaibode@gmail.com</a> &nbsp;&middot;&nbsp; <a href="https://billing.stripe.com/p/login/dRmeVfgxx4jY7lx4pUfbq00" style="color:#44445a;text-decoration:none">Manage subscription</a></p>
+  </div>
+</div>
+<script>
+var validCodes = {
+  'ILAB53-PRO':              { exp: null },
+  'ILAB53-VIP':              { exp: null },
+  'ILAB53-PENN':             { exp: '2026-07-10' },
+  'ILAB53-MERCK':            { exp: '2026-07-10' },
+  'ILAB53-PAPO':             { exp: '2026-07-10' },
+  'ILAB53-ELIZABETH':        { exp: '2026-07-10' },
+  'ILAB53-ZIFO':             { exp: '2026-07-10' },
+  'ILAB53-PLEASEDONOTSHARE': { exp: '2026-07-10' },
+  'ILAB53-J&J':              { exp: '2026-07-10' },
+  'ILAB53-NOVARTIS':         { exp: '2026-07-10' },
+  'ILAB53-DAVIDBITNER':      { exp: '2026-07-10' }
+};
+function checkCode() {
+  var input = document.getElementById('promo-input').value.trim().toUpperCase();
+  var errEl = document.getElementById('promo-error');
+  var entry = validCodes[input];
+  if (!entry) { errEl.textContent = 'Invalid code. Please check and try again.'; errEl.style.display = 'block'; return; }
+  if (entry.exp && new Date() > new Date(entry.exp)) { errEl.textContent = 'This code has expired.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  showSuccess(input, "You're in!");
+}
+function showSuccess(code, title) {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
+  document.getElementById('access-code').textContent = code;
+  if (title) document.getElementById('success-title').textContent = title;
+  if (code === 'ILAB53-PRO' || code === 'ILAB53-VIP') {
+    document.getElementById('success-msg').textContent = 'Your subscription is active. Use the code below to log in.';
+  } else {
+    document.getElementById('success-msg').textContent = 'Use the access code below to log in to the dashboard.';
+  }
+}
+function copyCode() {
+  var code = document.getElementById('access-code').textContent;
+  navigator.clipboard.writeText(code).then(function() {
+    document.getElementById('code-label').textContent = 'Copied!';
+    setTimeout(function() { document.getElementById('code-label').textContent = 'Your Access Code'; }, 2000);
+  });
+}
+var params = new URLSearchParams(window.location.search);
+if (params.get('success') === '1' || params.get('paid') === '1') { showSuccess('ILAB53-PRO', "You're in!"); }
+document.getElementById('promo-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') checkCode(); });
+</script>
+</body>
+</html>
